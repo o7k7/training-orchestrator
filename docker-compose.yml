@@ -1,0 +1,20 @@
+services:
+  redis:
+    image: redis/redis-stack:7.4.0-v8
+    ports:
+      - "6379:6379"
+      - "8081:8001"
+    environment:
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    networks:
+      - training-orchestrator
+
+networks:
+  training-orchestrator:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
