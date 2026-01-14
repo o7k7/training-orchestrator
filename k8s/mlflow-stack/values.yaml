@@ -1,0 +1,45 @@
+mlflow:
+  image: ghcr.io/mlflow/mlflow
+  tag: "2.18.0"
+  replicas: 1
+  servicePort: 5000
+  artifactBucket: "mlflow-artifacts"
+
+secrets:
+  dbPassword: ""
+  s3AccessKey: ""
+  s3SecretKey: ""
+
+postgresql:
+  enabled: true
+  auth:
+    username: mlflow_user
+    database: mlflow_db
+    existingSecret: "mlflow-prod-unified-secrets"
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: postgres-password
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+
+seaweedfs:
+  enabled: true
+
+  s3:
+    enabled: true
+    port: 8333
+    enableAuth: true
+    existingConfigSecret: "mlflow-prod-seaweedfs-auth-config"
+
+  filer:
+    enabled: true # For future use for S3
+  master:
+    enabled: true
+  volume:
+    enabled: true
+
+  volume:
+    dir: "/data"
+    sizeLimitMB: 5000

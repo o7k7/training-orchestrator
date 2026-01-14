@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-server
+spec:
+  replicas: {{ .Values.mlflow.replicas }}
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432; do echo waiting for db; sleep 2; done;']
+
+      containers:
+        - name: mlflow
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          image: "{{ .Values.mlflow.image }}:{{ .Values.mlflow.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-unified-secrets
+                  key: postgres-password
+
+            # --- S3 Credentials ---
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-unified-secrets
+                  key: s3-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-unified-secrets
+                  key: s3-secret-key
+
+          command: [ "/bin/bash", "-c" ]
+          args:
+            - >-
+              apt-get update && 
+              apt-get install -y gcc libpq-dev &&
+              pip install psycopg2-binary boto3 &&
+              mlflow server
+              --host 0.0.0.0
+              --port 5000
+              --backend-store-uri postgresql://{{ .Values.postgresql.auth.username }}:$(DB_PASS)@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}
+              --default-artifact-root s3://{{ .Values.mlflow.artifactBucket }}
