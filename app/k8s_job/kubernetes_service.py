@@ -86,10 +86,16 @@ class KubernetesService(IKubernetesService):
         job = client.V1Job(
             api_version="batch/v1",
             kind="Job",
-            metadata=client.V1ObjectMeta(name=job_name),
+            metadata=client.V1ObjectMeta(name=job_name,
+                                         labels={
+                                             "app": "orchestrator",
+                                             "type": "training-job",
+                                             # "user_id": "user_id" # TODO Add for user tracking
+                                         }),
             spec=client.V1JobSpec(
                 template=client.V1PodTemplateSpec(spec=pod_spec),
                 ttl_seconds_after_finished=120,
+                active_deadline_seconds=30,
                 backoff_limit=5
             )
         )
