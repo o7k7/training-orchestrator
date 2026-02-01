@@ -109,3 +109,49 @@ class KubernetesService(IKubernetesService):
             return CreateJobResponse(job_name=job_name, status="Failed")
 
         return CreateJobResponse(job_name=job_name, status=str(job_status))
+
+    def create_kaniko_build_job(self, job_id: str, git_repo: str, image_target: str):
+        volume_mount = client.V1VolumeMount(
+            name="kaniko-seecret",
+            mount_path="/kaniko/.docker/",
+        )
+
+        volume = client.V1Volume(
+            name="kaniko-secret",
+            secret=client.V1SecretVolumeSource(
+                secret_name="registry_credentials",
+                items=[client.V1KeyToPath(key=".dockerconfigjson", path="config.json")]
+            )
+        )
+
+        container = client.V1Container(
+            name="kaniko-builder",
+            image="gcr.io/kaniko-project/executor:latest", # TODO obtain from env
+            args=[
+                f"--context={git_repo}",
+                f"--destination={image_target}",
+                "--cache=true"
+            ],
+            volume_mounts=[volume_mount]
+        )
+
+        job = client.V1Job(
+            api_version="batch/v1",
+            kind="Job",
+            metadata=client.V1ObjectMeta(
+                name=f"build-{job_id}",
+                labels={"type": "builder", "app": "orchestrator"}
+            ),
+            spec=client.V1JobSpec(
+                template=client.V1PodTemplateSpec(
+                    spec=client.V1PodSpec(
+                        restart_policy="Never",
+                        containers=[container],
+                        volumes=[volume]
+                    )
+                ),
+                backoff_limit=2
+            )
+        )
+
+        return self.batch_api.create_namespaced_job(namespace="default", body=job)
