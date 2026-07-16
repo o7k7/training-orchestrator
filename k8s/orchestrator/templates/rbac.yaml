@@ -1,0 +1,27 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-role
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-rolebinding
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.orchestrator.name }}
+    namespace: {{ .Values.env.k8sNamespace }}
+roleRef:
+  kind: Role
+  name: {{ .Release.Name }}-role
+  apiGroup: rbac.authorization.k8s.io
