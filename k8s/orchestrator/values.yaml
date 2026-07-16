@@ -1,0 +1,51 @@
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+service:
+  port: 80
+  targetPort: 8000
+
+serviceAccount:
+  orchestrator:
+    name: orchestrator-sa
+    # ARN of an IAM role (IRSA) allowing the orchestrator to call the K8s API from within EKS.
+    # Leave empty outside EKS.
+    irsaRoleArn: ""
+  trainingJob:
+    name: training-job-sa
+    # ARN of an IAM role (IRSA) scoped to read/write on the checkpoint S3 bucket only.
+    # Training job pods run under this ServiceAccount instead of the orchestrator's own.
+    irsaRoleArn: ""
+
+# Bundles a bare-bones in-cluster Redis (no persistence, no auth hardening) for
+# local/dev deployments that don't have an external Redis. Leave disabled in
+# production and point env.redisHost at a real Redis instead.
+redis:
+  enabled: false
+  image: redis:7-alpine
+
+env:
+  environment: "prod"
+  redisHost: ""
+  redisPort: 6379
+  mlflowUri: ""
+  # Only set for a non-AWS S3-compatible endpoint (e.g. local SeaweedFS/MinIO).
+  # Leave empty on EKS, where real S3 access comes from the training-job ServiceAccount's IRSA role.
+  s3Endpoint: ""
+  k8sNamespace: "default"
+  trainingJobServiceAccount: "training-job-sa"
+  defaultJobDeadlineSeconds: 21600
+  zombieJobMaxAgeSeconds: 86400
+
+secrets:
+  redisPassword: ""
+  apiKey: ""
+  # Only needed alongside env.s3Endpoint for non-IRSA S3-compatible stores.
+  awsKey: ""
+  awsSecret: ""
+
+zombieDisposerCronSchedule: "0 * * * *"

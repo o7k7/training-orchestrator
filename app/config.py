@@ -16,9 +16,18 @@ class Config(BaseSettings):
     KUBE_CONFIG_FILE_DIR: str = KUBE_CONFIG_DEFAULT_LOCATION
 
     ML_FLOW_URI: str
-    S3_ENDPOINT: str
-    AWS_KEY: str
-    AWS_SECRET: str
+    # Only set for S3-compatible endpoints that aren't real AWS S3 (e.g. local SeaweedFS/MinIO).
+    # Left unset on EKS, where the training job's ServiceAccount uses IRSA instead of static keys.
+    S3_ENDPOINT: str | None = None
+    AWS_KEY: str | None = None
+    AWS_SECRET: str | None = None
+
+    API_KEY: str
+
+    K8S_NAMESPACE: str = "default"
+    TRAINING_JOB_SERVICE_ACCOUNT: str = "default"
+    DEFAULT_JOB_DEADLINE_SECONDS: int = 21600
+    ZOMBIE_JOB_MAX_AGE_SECONDS: int = 86400
 
     ENVIRONMENT: Environment
 

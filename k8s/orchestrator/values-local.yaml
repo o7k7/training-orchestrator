@@ -1,0 +1,22 @@
+# Override for local/dev clusters (e.g. kind/minikube) with no external Redis/S3/EKS.
+# Usage: helm install ... -f values.yaml -f values-local.yaml
+image:
+  repository: training-orchestrator
+  tag: local
+  pullPolicy: IfNotPresent
+
+redis:
+  enabled: true
+
+env:
+  # NOTE: "local" here means "no external Redis/S3/EKS", not "running outside the
+  # cluster". This still runs as an in-cluster pod, so ENVIRONMENT must be anything
+  # other than `local`.
+  environment: "dev"
+  # Placeholder - MLflow isn't deployed for this smoke test; only needed if the
+  # job's own training script actually calls the MLflow SDK.
+  mlflowUri: "http://mlflow-not-deployed:5000"
+
+secrets:
+  redisPassword: "local-dev-password"
+  apiKey: "local-dev-key"

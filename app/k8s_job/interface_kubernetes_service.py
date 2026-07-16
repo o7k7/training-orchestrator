@@ -14,5 +14,5 @@ class IKubernetesService(ABC):
         pass
 
     @abstractmethod
-    def create_kaniko_build_job(self, job_id: str, git_repo: str, image_target: str):
+    def create_kaniko_build_job(self, job_id: str, git_repo: str, image_target: str) -> CreateJobResponse:
         pass

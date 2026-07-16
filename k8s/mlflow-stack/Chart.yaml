@@ -13,3 +13,4 @@ dependencies:
   - name: seaweedfs
     version: 4.0.406
     repository: https://seaweedfs.github.io/seaweedfs/helm
+    condition: seaweedfs.enabled
