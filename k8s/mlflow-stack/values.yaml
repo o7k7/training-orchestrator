@@ -3,10 +3,20 @@ mlflow:
   tag: "2.18.0"
   replicas: 1
   servicePort: 5000
+  # Real AWS S3 bucket name on EKS (seaweedfs.enabled: false). For local/dev with SeaweedFS,
+  # this is the bucket name created inside the self-hosted SeaweedFS S3 gateway instead.
   artifactBucket: "mlflow-artifacts"
+
+serviceAccount:
+  name: mlflow-sa
+  # ARN of an IAM role (IRSA) scoped to read/write on the artifact bucket above.
+  # Leave empty when using self-hosted SeaweedFS instead of real S3.
+  irsaRoleArn: ""
 
 secrets:
   dbPassword: ""
+  # Only used when seaweedfs.enabled is true (self-hosted S3-compatible store).
+  # On EKS with real S3 + IRSA, no static keys are needed at all.
   s3AccessKey: ""
   s3SecretKey: ""
 
@@ -24,8 +34,10 @@ postgresql:
       enabled: true
       size: 5Gi
 
+# Self-hosted S3-compatible store. Disabled by default (EKS target: real AWS S3 + IRSA).
+# Enable via values-local.yaml for local/dev docker-compose-style deployments only.
 seaweedfs:
-  enabled: true
+  enabled: false
 
   s3:
     enabled: true
