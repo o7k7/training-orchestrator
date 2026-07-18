@@ -29,6 +29,13 @@ class Config(BaseSettings):
     DEFAULT_JOB_DEADLINE_SECONDS: int = 21600
     ZOMBIE_JOB_MAX_AGE_SECONDS: int = 86400
 
+    # Kueue's LocalQueue (in K8S_NAMESPACE) that training jobs are submitted through.
+    KUEUE_LOCAL_QUEUE_NAME: str = "training-local-queue"
+    # Must match the nodeLabels on Kueue's "gpu-flavor" ResourceFlavor and the label
+    # applied by the GPU node group (see k8s/cluster-addons/kueue/resources, infra/gpu-node-group).
+    GPU_NODE_LABEL_KEY: str = "nvidia.com/gpu.present"
+    GPU_NODE_LABEL_VALUE: str = "true"
+
     ENVIRONMENT: Environment
 
     model_config = SettingsConfigDict(

@@ -89,3 +89,33 @@ def test_s3_env_vars_included_when_s3_endpoint_configured(service, monkeypatch):
 
     env_names = {e.name for e in job.spec.template.spec.containers[0].env}
     assert "AWS_ACCESS_KEY_ID" in env_names
+
+
+def test_job_is_suspended_and_labeled_for_kueue(service):
+    job = _submit(service)
+
+    assert job.spec.suspend is True
+    assert job.metadata.labels["kueue.x-k8s.io/queue-name"] == app_config.KUEUE_LOCAL_QUEUE_NAME
+
+
+def test_cpu_only_job_has_no_gpu_node_selector(service):
+    job = _submit(service)
+
+    pod_spec = job.spec.template.spec
+    assert pod_spec.node_selector is None
+    assert pod_spec.tolerations is None
+    assert "nvidia.com/gpu" not in job.spec.template.spec.containers[0].resources.requests
+
+
+def test_gpu_job_gets_gpu_resources_and_node_selector(service, monkeypatch):
+    monkeypatch.setattr(app_config, "GPU_NODE_LABEL_KEY", "nvidia.com/gpu.present")
+    monkeypatch.setattr(app_config, "GPU_NODE_LABEL_VALUE", "true")
+
+    job = _submit(service, gpu_request=2)
+
+    pod_spec = job.spec.template.spec
+    resources = pod_spec.containers[0].resources
+    assert resources.requests["nvidia.com/gpu"] == "2"
+    assert resources.limits["nvidia.com/gpu"] == "2"
+    assert pod_spec.node_selector == {"nvidia.com/gpu.present": "true"}
+    assert pod_spec.tolerations[0].key == "nvidia.com/gpu"
