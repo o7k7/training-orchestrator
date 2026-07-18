@@ -74,6 +74,12 @@ class KubernetesService(IKubernetesService):
                 client.V1EnvVar(name="AWS_SECRET_ACCESS_KEY", value=app_config.AWS_SECRET),
             ])
 
+        # GPU requests/limits must be equal - the K8s device-plugin API has no notion
+        # of a "burstable" GPU request the way it does for CPU/memory.
+        resource_quantities = {"cpu": req.cpu_request, "memory": req.memory_request}
+        if req.gpu_request > 0:
+            resource_quantities["nvidia.com/gpu"] = str(req.gpu_request)
+
         main_container = client.V1Container(
             name="training-container",
             image=req.image_name,
@@ -85,8 +91,8 @@ class KubernetesService(IKubernetesService):
             ],
             env=env,
             resources=client.V1ResourceRequirements(
-                requests={"cpu": req.cpu_request, "memory": req.memory_request},
-                limits={"cpu": req.cpu_request, "memory": req.memory_request},
+                requests=resource_quantities,
+                limits=resource_quantities,
             ),
         )
 
@@ -97,6 +103,11 @@ class KubernetesService(IKubernetesService):
             containers=[main_container],
             volumes=[shared_volume],
         )
+        if req.gpu_request > 0:
+            pod_spec.node_selector = {app_config.GPU_NODE_LABEL_KEY: app_config.GPU_NODE_LABEL_VALUE}
+            pod_spec.tolerations = [
+                client.V1Toleration(key="nvidia.com/gpu", operator="Exists", effect="NoSchedule")
+            ]
 
         job = client.V1Job(
             api_version="batch/v1",
@@ -105,13 +116,17 @@ class KubernetesService(IKubernetesService):
                                          labels={
                                              ORCHESTRATOR_LABEL_KEY: ORCHESTRATOR_LABEL_VALUE,
                                              "type": "training-job",
+                                             "kueue.x-k8s.io/queue-name": app_config.KUEUE_LOCAL_QUEUE_NAME,
                                              # "user_id": "user_id" # TODO Add for user tracking
                                          }),
             spec=client.V1JobSpec(
                 template=client.V1PodTemplateSpec(spec=pod_spec),
                 ttl_seconds_after_finished=120,
                 active_deadline_seconds=req.active_deadline_seconds or app_config.DEFAULT_JOB_DEADLINE_SECONDS,
-                backoff_limit=5
+                backoff_limit=5,
+                # Required for Kueue to manage this Job at all - its controller flips
+                # this to false once the workload is admitted against queue quota.
+                suspend=True,
             )
         )
 
