@@ -14,3 +14,9 @@ class CreateJobRequest(BaseModel):
     active_deadline_seconds: int | None = Field(
         default=None, description="Max job runtime in seconds before it's killed; defaults to a platform-wide setting"
     )
+
+    # Weights & Biases is additive to MLflow, not a replacement. Leave wandb_project
+    # unset to skip W&B entirely; the training script still owns wandb.init()/wandb.log(),
+    # this platform only injects credentials/config the same way it does for MLflow.
+    wandb_project: str | None = Field(default=None, description="W&B project name; omit to skip W&B entirely")
+    wandb_entity: str | None = Field(default=None, description="W&B entity (user/team); only used if wandb_project is set")

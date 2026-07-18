@@ -30,6 +30,17 @@ class KubernetesService(IKubernetesService):
         self.batch_api = client.BatchV1Api()
 
 
+    @staticmethod
+    def _secret_env_var(env_name: str, secret_key: str) -> client.V1EnvVar:
+        return client.V1EnvVar(
+            name=env_name,
+            value_from=client.V1EnvVarSource(
+                secret_key_ref=client.V1SecretKeySelector(
+                    name=app_config.TRAINING_JOB_SECRETS_NAME, key=secret_key
+                )
+            ),
+        )
+
     async def list_pods(self):
         v1 = client.CoreV1Api()
         thread = v1.list_pod_for_all_namespaces(watch=False, async_req=True)
@@ -70,9 +81,19 @@ class KubernetesService(IKubernetesService):
         if app_config.S3_ENDPOINT:
             env.extend([
                 client.V1EnvVar(name="MLFLOW_S3_ENDPOINT_URL", value=app_config.S3_ENDPOINT),
-                client.V1EnvVar(name="AWS_ACCESS_KEY_ID", value=app_config.AWS_KEY),
-                client.V1EnvVar(name="AWS_SECRET_ACCESS_KEY", value=app_config.AWS_SECRET),
+                self._secret_env_var("AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"),
+                self._secret_env_var("AWS_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"),
             ])
+
+        # Weights & Biases is additive to MLflow - the training script owns wandb.init()/
+        # wandb.log(), this only injects credentials/config the same way MLflow's env vars do.
+        if req.wandb_project:
+            env.extend([
+                self._secret_env_var("WANDB_API_KEY", "WANDB_API_KEY"),
+                client.V1EnvVar(name="WANDB_PROJECT", value=req.wandb_project),
+            ])
+            if req.wandb_entity:
+                env.append(client.V1EnvVar(name="WANDB_ENTITY", value=req.wandb_entity))
 
         # GPU requests/limits must be equal - the K8s device-plugin API has no notion
         # of a "burstable" GPU request the way it does for CPU/memory.
