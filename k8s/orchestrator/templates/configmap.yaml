@@ -16,5 +16,6 @@ data:
   {{- end }}
   K8S_NAMESPACE: {{ .Values.env.k8sNamespace | quote }}
   TRAINING_JOB_SERVICE_ACCOUNT: {{ .Values.env.trainingJobServiceAccount | quote }}
+  TRAINING_JOB_SECRETS_NAME: {{ printf "%s-training-job-secrets" .Release.Name | quote }}
   DEFAULT_JOB_DEADLINE_SECONDS: {{ .Values.env.defaultJobDeadlineSeconds | quote }}
   ZOMBIE_JOB_MAX_AGE_SECONDS: {{ .Values.env.zombieJobMaxAgeSeconds | quote }}

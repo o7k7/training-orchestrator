@@ -44,8 +44,11 @@ env:
 secrets:
   redisPassword: ""
   apiKey: ""
-  # Only needed alongside env.s3Endpoint for non-IRSA S3-compatible stores.
+  # Only needed alongside env.s3Endpoint for non-IRSA S3-compatible stores. Stored in
+  # training-job-secrets.
   awsKey: ""
   awsSecret: ""
+  # Only needed if training jobs will report to Weights & Biases.
+  wandbApiKey: ""
 
 zombieDisposerCronSchedule: "0 * * * *"
