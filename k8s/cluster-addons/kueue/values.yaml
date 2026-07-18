@@ -1,0 +1,18 @@
+kueue:
+  enablePrometheus: false
+
+queue:
+  # Must match app.config.Config.K8S_NAMESPACE (default "default").
+  namespace: default
+  cpu:
+    nominalQuota: "8"
+  memory:
+    nominalQuota: "16Gi"
+  gpu:
+    # 0 until a real GPU node group (see infra/gpu-node-group) is online.
+    nominalQuota: "0"
+
+# Must match app.config.Config.GPU_NODE_LABEL_KEY/VALUE
+gpuNodeLabel:
+  key: nvidia.com/gpu.present
+  value: "true"

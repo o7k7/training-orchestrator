@@ -1,0 +1,10 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: training-local-queue
+  namespace: {{ .Values.queue.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "2" # after cluster-queue.yaml (weight 1), which it references by name
+spec:
+  clusterQueue: training-cluster-queue
