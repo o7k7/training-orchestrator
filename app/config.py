@@ -19,10 +19,13 @@ class Config(BaseSettings):
     # Only set for S3-compatible endpoints that aren't real AWS S3 (e.g. local SeaweedFS/MinIO).
     # Left unset on EKS, where the training job's ServiceAccount uses IRSA instead of static keys.
     S3_ENDPOINT: str | None = None
-    AWS_KEY: str | None = None
-    AWS_SECRET: str | None = None
 
     API_KEY: str
+
+    # K8s Secret (in K8S_NAMESPACE) that training job pods pull credentials from via
+    # secretKeyRef. This holds AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY (only used when S3_ENDPOINT is
+    # set) and/or WANDB_API_KEY.
+    TRAINING_JOB_SECRETS_NAME: str = "training-job-secrets"
 
     K8S_NAMESPACE: str = "default"
     TRAINING_JOB_SERVICE_ACCOUNT: str = "default"

@@ -82,13 +82,45 @@ def test_s3_env_vars_omitted_when_no_s3_endpoint_configured(service, monkeypatch
 
 def test_s3_env_vars_included_when_s3_endpoint_configured(service, monkeypatch):
     monkeypatch.setattr(app_config, "S3_ENDPOINT", "http://seaweedfs:8333")
-    monkeypatch.setattr(app_config, "AWS_KEY", "key")
-    monkeypatch.setattr(app_config, "AWS_SECRET", "secret")
 
     job = _submit(service)
 
+    env = {e.name: e for e in job.spec.template.spec.containers[0].env}
+    assert "AWS_ACCESS_KEY_ID" in env
+    # Must come from a Secret, never as a plaintext value in the Job spec.
+    assert env["AWS_ACCESS_KEY_ID"].value is None
+    assert env["AWS_ACCESS_KEY_ID"].value_from.secret_key_ref.name == app_config.TRAINING_JOB_SECRETS_NAME
+    assert env["AWS_ACCESS_KEY_ID"].value_from.secret_key_ref.key == "AWS_ACCESS_KEY_ID"
+
+
+def test_wandb_env_vars_omitted_when_no_project_set(service):
+    job = _submit(service)
+
     env_names = {e.name for e in job.spec.template.spec.containers[0].env}
-    assert "AWS_ACCESS_KEY_ID" in env_names
+    assert "WANDB_API_KEY" not in env_names
+    assert "WANDB_PROJECT" not in env_names
+    assert "WANDB_ENTITY" not in env_names
+
+
+def test_wandb_env_vars_included_when_project_set(service):
+    job = _submit(service, wandb_project="my-project", wandb_entity="my-team")
+
+    env = {e.name: e for e in job.spec.template.spec.containers[0].env}
+    assert env["WANDB_PROJECT"].value == "my-project"
+    assert env["WANDB_ENTITY"].value == "my-team"
+    # API key must come from a Secret, never as a plaintext value in the Job spec.
+    assert env["WANDB_API_KEY"].value is None
+    assert env["WANDB_API_KEY"].value_from.secret_key_ref.name == app_config.TRAINING_JOB_SECRETS_NAME
+    assert env["WANDB_API_KEY"].value_from.secret_key_ref.key == "WANDB_API_KEY"
+
+
+def test_wandb_entity_omitted_when_not_set(service):
+    job = _submit(service, wandb_project="my-project")
+
+    env_names = {e.name for e in job.spec.template.spec.containers[0].env}
+    assert "WANDB_PROJECT" in env_names
+    assert "WANDB_API_KEY" in env_names
+    assert "WANDB_ENTITY" not in env_names
 
 
 def test_job_is_suspended_and_labeled_for_kueue(service):
