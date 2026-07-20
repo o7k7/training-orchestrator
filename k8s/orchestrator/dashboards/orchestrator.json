@@ -1,0 +1,74 @@
+{
+  "id": null,
+  "uid": "training-orchestrator",
+  "title": "Training Orchestrator",
+  "tags": ["training-orchestrator"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "API request rate, by handler/status",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"training-orchestrator-service\"}[5m])) by (handler, status)",
+          "legendFormat": "{{handler}} ({{status}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "API request latency, p95 (seconds)",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"training-orchestrator-service\"}[5m])) by (le, handler))",
+          "legendFormat": "{{handler}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Job creation latency (K8s API round-trip), p50/p95",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(training_job_creation_latency_seconds_bucket{job=\"training-orchestrator-service\"}[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(training_job_creation_latency_seconds_bucket{job=\"training-orchestrator-service\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Jobs submitted rate, by outcome/GPU",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(training_jobs_submitted_total{job=\"training-orchestrator-service\"}[5m])) by (status, gpu)",
+          "legendFormat": "{{status}} (gpu={{gpu}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

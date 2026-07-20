@@ -1,6 +1,9 @@
 kueue:
   enablePrometheus: false
 
+# This replaces Helm hooks (post-install/post-upgrade).
+installQueueResources: true
+
 queue:
   # Must match app.config.Config.K8S_NAMESPACE (default "default").
   namespace: default
@@ -16,3 +19,7 @@ queue:
 gpuNodeLabel:
   key: nvidia.com/gpu.present
   value: "true"
+
+# Requires kube-prometheus-stack's Grafana sidecar (see k8s/cluster-addons/kube-prometheus-stack).
+grafanaDashboard:
+  enabled: false

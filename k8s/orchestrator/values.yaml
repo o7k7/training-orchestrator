@@ -9,6 +9,15 @@ service:
   port: 80
   targetPort: 8000
 
+metrics:
+  serviceMonitor:
+    # Requires the Prometheus Operator's CRDs to already be installed
+    # (see k8s/cluster-addons/kube-prometheus-stack) - leave disabled otherwise.
+    enabled: false
+  grafanaDashboard:
+    # Requires kube-prometheus-stack's Grafana sidecar.
+    enabled: false
+
 serviceAccount:
   orchestrator:
     name: orchestrator-sa

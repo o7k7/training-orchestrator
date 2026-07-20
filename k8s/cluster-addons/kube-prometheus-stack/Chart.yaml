@@ -1,0 +1,11 @@
+apiVersion: v2
+name: training-observability
+description: Prometheus Operator + Prometheus + Grafana + Alertmanager for the training platform
+type: application
+version: 0.1.0
+appVersion: "v0.92.1"
+
+dependencies:
+  - name: kube-prometheus-stack
+    version: 87.17.0
+    repository: https://prometheus-community.github.io/helm-charts
