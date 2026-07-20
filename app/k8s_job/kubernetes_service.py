@@ -9,6 +9,7 @@ from app.k8s_job.constants import ORCHESTRATOR_LABEL_KEY, ORCHESTRATOR_LABEL_VAL
 from app.k8s_job.interface_kubernetes_service import IKubernetesService
 from app.k8s_job.models.create_job_request import CreateJobRequest
 from app.k8s_job.models.create_job_response import CreateJobResponse
+from app.metrics import job_creation_latency_seconds, jobs_submitted_total
 
 
 class KubernetesService(IKubernetesService):
@@ -151,14 +152,18 @@ class KubernetesService(IKubernetesService):
             )
         )
 
+        gpu_label = str(req.gpu_request > 0)
         try:
-            thread = self.batch_api.create_namespaced_job(body=job, namespace=app_config.K8S_NAMESPACE, async_req=True)
-            response: V1Job = thread.get()
-            job_status: V1JobStatus = response.status
+            with job_creation_latency_seconds.time():
+                thread = self.batch_api.create_namespaced_job(body=job, namespace=app_config.K8S_NAMESPACE, async_req=True)
+                response: V1Job = thread.get()
+                job_status: V1JobStatus = response.status
         except Exception as e:
             self.logger.error(f"Kubernetes Job Exception: {e}")
+            jobs_submitted_total.labels(status="failed", gpu=gpu_label).inc()
             return CreateJobResponse(job_name=job_name, status="Failed")
 
+        jobs_submitted_total.labels(status="created", gpu=gpu_label).inc()
         return CreateJobResponse(job_name=job_name, status=str(job_status))
 
     def create_kaniko_build_job(self, job_id: str, git_repo: str, image_target: str) -> CreateJobResponse:
