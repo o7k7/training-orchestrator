@@ -1,10 +1,8 @@
+{{- if .Values.installQueueResources }}
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ClusterQueue
 metadata:
   name: training-cluster-queue
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "1" # after resource-flavors.yaml (weight 0), which it references by name
 spec:
   namespaceSelector: {} # match all namespaces
   resourceGroups:
@@ -22,3 +20,4 @@ spec:
           resources:
             - name: "nvidia.com/gpu"
               nominalQuota: {{ .Values.queue.gpu.nominalQuota | quote }}
+{{- end }}
