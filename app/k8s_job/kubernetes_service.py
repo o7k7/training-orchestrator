@@ -3,6 +3,7 @@ import uuid
 
 from kubernetes import client, config
 from kubernetes.client import V1PodList, V1Job, V1JobStatus
+from kubernetes.client.exceptions import ApiException
 
 from app.config import config as app_config, Environment
 from app.k8s_job.constants import ORCHESTRATOR_LABEL_KEY, ORCHESTRATOR_LABEL_VALUE
@@ -43,8 +44,11 @@ class KubernetesService(IKubernetesService):
         )
 
     async def list_pods(self):
+        # Namespace-scoped, not list_pod_for_all_namespaces: the orchestrator's RBAC
+        # Role is namespace-scoped (see k8s/orchestrator/templates/rbac.yaml), and a
+        # cluster-wide list call 403s against it regardless of what's actually running.
         v1 = client.CoreV1Api()
-        thread = v1.list_pod_for_all_namespaces(watch=False, async_req=True)
+        thread = v1.list_namespaced_pod(namespace=app_config.K8S_NAMESPACE, watch=False, async_req=True)
         response: V1PodList = thread.get()
         return self.k8s_api_client.sanitize_for_serialization(response)
 
@@ -221,3 +225,34 @@ class KubernetesService(IKubernetesService):
             return CreateJobResponse(job_name=job_name, status="Failed")
 
         return CreateJobResponse(job_name=job_name, status=str(job_status))
+
+    def get_job_status(self, job_name: str) -> dict | None:
+        try:
+            job: V1Job = self.batch_api.read_namespaced_job_status(name=job_name, namespace=app_config.K8S_NAMESPACE)
+        except ApiException as e:
+            if e.status == 404:
+                return None
+            raise
+        return self.k8s_api_client.sanitize_for_serialization(job.status)
+
+    def get_job_logs(self, job_name: str) -> str | None:
+        core_v1 = client.CoreV1Api()
+        pods = core_v1.list_namespaced_pod(
+            namespace=app_config.K8S_NAMESPACE,
+            label_selector=f"job-name={job_name}",
+        )
+        if not pods.items:
+            return None
+
+        # Most recent pod, in case backoff_limit produced retries.
+        pod_name = pods.items[-1].metadata.name
+        try:
+            return core_v1.read_namespaced_pod_log(
+                name=pod_name, namespace=app_config.K8S_NAMESPACE, container="training-container"
+            )
+        except ApiException as e:
+            # Pod exists but the main container hasn't started yet (e.g. still
+            # running the git-clone init container) - not an error, just no logs yet.
+            if e.status in (400, 404):
+                return ""
+            raise

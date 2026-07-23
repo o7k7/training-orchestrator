@@ -1,6 +1,8 @@
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
+from kubernetes.client.exceptions import ApiException
 
 from app.config import config as app_config
 from app.k8s_job.models.create_job_request import CreateJobRequest
@@ -151,3 +153,89 @@ def test_gpu_job_gets_gpu_resources_and_node_selector(service, monkeypatch):
     assert resources.limits["nvidia.com/gpu"] == "2"
     assert pod_spec.node_selector == {"nvidia.com/gpu.present": "true"}
     assert pod_spec.tolerations[0].key == "nvidia.com/gpu"
+
+
+def test_get_job_status_returns_none_when_not_found(service):
+    service.batch_api.read_namespaced_job_status.side_effect = ApiException(status=404)
+
+    assert service.get_job_status("does-not-exist") is None
+
+
+def test_get_job_status_reraises_non_404_errors(service):
+    service.batch_api.read_namespaced_job_status.side_effect = ApiException(status=500)
+
+    with pytest.raises(ApiException):
+        service.get_job_status("training-job-abc123")
+
+
+def test_get_job_status_returns_sanitized_status(service):
+    fake_status = MagicMock()
+    service.batch_api.read_namespaced_job_status.return_value = MagicMock(status=fake_status)
+    service.k8s_api_client = MagicMock()
+
+    result = service.get_job_status("training-job-abc123")
+
+    service.k8s_api_client.sanitize_for_serialization.assert_called_once_with(fake_status)
+    assert result == service.k8s_api_client.sanitize_for_serialization.return_value
+
+
+def test_get_job_logs_returns_none_when_no_pods(service):
+    with patch("app.k8s_job.kubernetes_service.client.CoreV1Api") as MockCoreV1:
+        MockCoreV1.return_value.list_namespaced_pod.return_value = MagicMock(items=[])
+
+        assert service.get_job_logs("training-job-abc123") is None
+
+
+def test_get_job_logs_reads_most_recent_pod(service):
+    older_pod = MagicMock()
+    older_pod.metadata.name = "training-job-abc123-aaaaa"
+    newer_pod = MagicMock()
+    newer_pod.metadata.name = "training-job-abc123-bbbbb"
+
+    with patch("app.k8s_job.kubernetes_service.client.CoreV1Api") as MockCoreV1:
+        mock_core_v1 = MockCoreV1.return_value
+        mock_core_v1.list_namespaced_pod.return_value = MagicMock(items=[older_pod, newer_pod])
+        mock_core_v1.read_namespaced_pod_log.return_value = "log output"
+
+        result = service.get_job_logs("training-job-abc123")
+
+        assert result == "log output"
+        mock_core_v1.read_namespaced_pod_log.assert_called_once_with(
+            name="training-job-abc123-bbbbb",
+            namespace=app_config.K8S_NAMESPACE,
+            container="training-container",
+        )
+
+
+def test_get_job_logs_returns_empty_string_when_container_not_started(service):
+    pod = MagicMock()
+    pod.metadata.name = "training-job-abc123-aaaaa"
+
+    with patch("app.k8s_job.kubernetes_service.client.CoreV1Api") as MockCoreV1:
+        mock_core_v1 = MockCoreV1.return_value
+        mock_core_v1.list_namespaced_pod.return_value = MagicMock(items=[pod])
+        mock_core_v1.read_namespaced_pod_log.side_effect = ApiException(status=400)
+
+        assert service.get_job_logs("training-job-abc123") == ""
+
+
+def test_list_pods_is_scoped_to_configured_namespace(service, monkeypatch):
+    # Regression test: list_pod_for_all_namespaces() needs cluster-wide RBAC that this
+    # orchestrator's namespace-scoped Role can't grant (403 in practice) - must use the
+    # namespaced call instead.
+    monkeypatch.setattr(app_config, "K8S_NAMESPACE", "training-ns")
+
+    with patch("app.k8s_job.kubernetes_service.client.CoreV1Api") as MockCoreV1:
+        mock_core_v1 = MockCoreV1.return_value
+        thread = MagicMock()
+        thread.get.return_value = MagicMock()
+        mock_core_v1.list_namespaced_pod.return_value = thread
+        mock_core_v1.list_pod_for_all_namespaces = MagicMock(
+            side_effect=AssertionError("must not call the cluster-wide list")
+        )
+
+        asyncio.run(service.list_pods())
+
+        mock_core_v1.list_namespaced_pod.assert_called_once_with(
+            namespace="training-ns", watch=False, async_req=True
+        )
