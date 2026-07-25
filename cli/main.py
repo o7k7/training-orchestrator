@@ -47,6 +47,7 @@ def submit(
     deadline: int | None = typer.Option(None, "--deadline", help="Max runtime in seconds"),
     wandb_project: str | None = typer.Option(None, "--wandb-project"),
     wandb_entity: str | None = typer.Option(None, "--wandb-entity"),
+    push_to_hub_repo: str | None = typer.Option(None, "--push-to-hub-repo", help="HF Hub repo id to push results to, e.g. user/my-adapter"),
 ):
     """Submit a training job."""
     payload = {
@@ -65,6 +66,8 @@ def submit(
         payload["wandb_project"] = wandb_project
         if wandb_entity:
             payload["wandb_entity"] = wandb_entity
+    if push_to_hub_repo:
+        payload["push_to_hub_repo"] = push_to_hub_repo
 
     with _client() as client:
         response = client.post("/api/v1/jobs/", json=payload)

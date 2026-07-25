@@ -74,12 +74,18 @@ helm upgrade kueue-stack . --namespace kueue-system \
 echo
 echo "--- [3/3] orchestrator ---"
 cd "$REPO_ROOT/k8s/orchestrator"
+HELM_SET_ARGS=(
+  --set "image.repository=$ORCHESTRATOR_IMAGE_REPO"
+  --set "image.tag=$ORCHESTRATOR_IMAGE_TAG"
+  --set "serviceAccount.trainingJob.irsaRoleArn=$TRAINING_JOB_ROLE_ARN"
+  --set "secrets.apiKey=$API_KEY"
+)
+[ -n "${WANDB_API_KEY:-}" ] && HELM_SET_ARGS+=(--set "secrets.wandbApiKey=$WANDB_API_KEY")
+[ -n "${HF_TOKEN:-}" ] && HELM_SET_ARGS+=(--set "secrets.hfToken=$HF_TOKEN")
+
 helm upgrade --install training-orchestrator . --namespace default \
   -f values.yaml -f values-aws.yaml \
-  --set "image.repository=$ORCHESTRATOR_IMAGE_REPO" \
-  --set "image.tag=$ORCHESTRATOR_IMAGE_TAG" \
-  --set "serviceAccount.trainingJob.irsaRoleArn=$TRAINING_JOB_ROLE_ARN" \
-  --set "secrets.apiKey=$API_KEY" \
+  "${HELM_SET_ARGS[@]}" \
   --wait --timeout 3m
 
 echo

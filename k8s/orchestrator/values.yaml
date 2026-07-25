@@ -59,5 +59,6 @@ secrets:
   awsSecret: ""
   # Only needed if training jobs will report to Weights & Biases.
   wandbApiKey: ""
+  hfToken: ""
 
 zombieDisposerCronSchedule: "0 * * * *"

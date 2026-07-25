@@ -100,6 +100,12 @@ class KubernetesService(IKubernetesService):
             if req.wandb_entity:
                 env.append(client.V1EnvVar(name="WANDB_ENTITY", value=req.wandb_entity))
 
+        if req.push_to_hub_repo:
+            env.extend([
+                self._secret_env_var("HF_TOKEN", "HF_TOKEN"),
+                client.V1EnvVar(name="HF_HUB_REPO_ID", value=req.push_to_hub_repo),
+            ])
+
         # GPU requests/limits must be equal - the K8s device-plugin API has no notion
         # of a "burstable" GPU request the way it does for CPU/memory.
         resource_quantities = {"cpu": req.cpu_request, "memory": req.memory_request}
