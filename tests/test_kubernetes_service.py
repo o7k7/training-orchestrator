@@ -125,6 +125,25 @@ def test_wandb_entity_omitted_when_not_set(service):
     assert "WANDB_ENTITY" not in env_names
 
 
+def test_hf_env_vars_omitted_when_no_repo_set(service):
+    job = _submit(service)
+
+    env_names = {e.name for e in job.spec.template.spec.containers[0].env}
+    assert "HF_TOKEN" not in env_names
+    assert "HF_HUB_REPO_ID" not in env_names
+
+
+def test_hf_env_vars_included_when_repo_set(service):
+    job = _submit(service, push_to_hub_repo="my-user/my-adapter")
+
+    env = {e.name: e for e in job.spec.template.spec.containers[0].env}
+    assert env["HF_HUB_REPO_ID"].value == "my-user/my-adapter"
+    # Token must come from a Secret, never as a plaintext value in the Job spec.
+    assert env["HF_TOKEN"].value is None
+    assert env["HF_TOKEN"].value_from.secret_key_ref.name == app_config.TRAINING_JOB_SECRETS_NAME
+    assert env["HF_TOKEN"].value_from.secret_key_ref.key == "HF_TOKEN"
+
+
 def test_job_is_suspended_and_labeled_for_kueue(service):
     job = _submit(service)
 

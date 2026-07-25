@@ -20,3 +20,7 @@ class CreateJobRequest(BaseModel):
     # this platform only injects credentials/config the same way it does for MLflow.
     wandb_project: str | None = Field(default=None, description="W&B project name; omit to skip W&B entirely")
     wandb_entity: str | None = Field(default=None, description="W&B entity (user/team); only used if wandb_project is set")
+
+    push_to_hub_repo: str | None = Field(
+        default=None, description="HF Hub repo id (e.g. 'username/my-adapter') to push the result to; omit to skip"
+    )
