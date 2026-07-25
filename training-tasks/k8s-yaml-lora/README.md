@@ -24,27 +24,33 @@ directory (`cd training-tasks/k8s-yaml-lora`), reading `data/*.jsonl` relatively
 **Strongly recommended: smoke-test locally on a real GPU before submitting to
 any cloud infra that bills by the hour.** If you have a local kind cluster with
 GPU passthrough set up (see `docs/gpu-scheduling-and-kueue.md` for how that was
-done for this project), submit against that first:
+done for this project), submit against that first.
+
+**Important: the real base model needs ~24GB VRAM and will OOM on a smaller
+GPU** (e.g. an 8GB laptop GPU) just loading the weights, regardless of
+`MAX_STEPS`. For a local smoke test, override `BASE_MODEL` to something tiny -
+this doesn't produce a meaningful fine-tune, it only proves the pipeline
+mechanics (data loading, LoRA/collator wiring, save, S3/Hub push, W&B, the
+kubeconform eval loop) actually work end to end:
 
 ```bash
 docker build -t k8s-yaml-lora:local .
 kind load docker-image k8s-yaml-lora:local --name <your-gpu-cluster>
 
-# via the CLI (see cli/main.py), assuming the orchestrator is already deployed there.
-# MAX_STEPS/EVAL_LIMIT cut this down to a few minutes instead of a full run - just
-# proving the pipeline works end to end (model downloads, trains, saves, evals).
 python -m cli.main submit \
   --image k8s-yaml-lora:local \
   --repo-url <this-repo-url> \
-  --command "cd training-tasks/k8s-yaml-lora && MAX_STEPS=5 python train.py && EVAL_LIMIT=2 python eval.py" \
+  --command "cd training-tasks/k8s-yaml-lora && BASE_MODEL=Qwen/Qwen2.5-0.5B-Instruct MAX_STEPS=5 python train.py && BASE_MODEL=Qwen/Qwen2.5-0.5B-Instruct EVAL_LIMIT=2 python eval.py" \
   --experiment-id k8s-yaml-lora-smoketest \
   --gpu 1 \
-  --cpu 4 --memory 16Gi \
-  --deadline 3600
+  --cpu 4 --memory 8Gi \
+  --deadline 1800
 ```
 
-Only once that's confirmed working should you drop `MAX_STEPS`/`EVAL_LIMIT` for
-a real run, and only then point the same job at a real (billed) GPU node group.
+Only once that's confirmed working should you drop `BASE_MODEL`/`MAX_STEPS`/
+`EVAL_LIMIT` for a real run, and only then point the same job at a real
+(billed) GPU node group with enough VRAM (e.g. `g5.xlarge`, 24GB A10G - see
+`infra/gpu-node-group`).
 
 ### Optional: W&B tracking
 

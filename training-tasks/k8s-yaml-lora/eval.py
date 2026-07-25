@@ -13,7 +13,7 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 ADAPTER_DIR = "./adapter_output"
 EVAL_FILE = "data/eval.jsonl"
 SYSTEM_PROMPT = "You are a Kubernetes expert. Given a description, output the corresponding Kubernetes manifest as YAML."

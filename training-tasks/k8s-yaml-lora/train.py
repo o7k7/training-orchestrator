@@ -14,6 +14,13 @@ Env vars (all optional except the base model download, which needs none):
       it inline in the job's command (e.g. "CHECKPOINT_BUCKET=foo python train.py")
       if you want the adapter uploaded to S3 via the training-job ServiceAccount's
       IRSA role. Skipped if unset.
+  BASE_MODEL                                  - override the model to fine-tune.
+      Defaults to Qwen/Qwen2.5-7B-Instruct, which needs ~24GB VRAM and will OOM
+      on anything smaller (e.g. an 8GB laptop GPU). For a local pipeline smoke
+      test on a small GPU, override to a tiny model (e.g.
+      "Qwen/Qwen2.5-0.5B-Instruct") - this proves the mechanics (data loading,
+      LoRA/collator wiring, save, S3/Hub push, W&B logging) without needing the
+      real 24GB GPU that the actual training run requires.
 """
 
 import os
@@ -26,7 +33,7 @@ from peft import LoraConfig
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
 
-BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 OUTPUT_DIR = "./adapter_output"
 RUN_ID = os.environ.get("WANDB_RUN_ID") or uuid.uuid4().hex[:8]
 
