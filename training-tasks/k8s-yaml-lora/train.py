@@ -115,7 +115,8 @@ def main() -> None:
         output_dir="./checkpoints",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=8,
-        num_train_epochs=3,
+        # 3 epochs caused overfit on this 203-example so switching to 1 epoch.
+        num_train_epochs=1,
         max_steps=max_steps,
         learning_rate=2e-4,
         lr_scheduler_type="cosine",

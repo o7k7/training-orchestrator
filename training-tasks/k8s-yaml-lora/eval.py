@@ -14,7 +14,9 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 BASE_MODEL = os.environ.get("BASE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-ADAPTER_DIR = "./adapter_output"
+# Local path by default (same-pod run right after train.py); override to a HF Hub
+# repo id (e.g. "user/repo") to re-run eval standalone against a pushed adapter.
+ADAPTER_DIR = os.environ.get("ADAPTER_DIR", "./adapter_output")
 EVAL_FILE = "data/eval.jsonl"
 SYSTEM_PROMPT = "You are a Kubernetes expert. Given a description, output the corresponding Kubernetes manifest as YAML."
 
