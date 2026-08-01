@@ -115,11 +115,14 @@ def main() -> None:
         output_dir="./checkpoints",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=8,
-        # 3 epochs caused overfit on this 203-example so switching to 1 epoch.
-        num_train_epochs=1,
+        num_train_epochs=3,
         max_steps=max_steps,
         learning_rate=2e-4,
-        lr_scheduler_type="cosine",
+        # Cosine decays to ~0 by the end of training regardless of how many steps
+        # that is - dropping to 1 epoch shrank the decay horizon to ~12 steps and
+        # starved the run of effective LR (see train-job-d7202f's run: worse than
+        # both the 3-epoch cosine run and zero-shot base)
+        lr_scheduler_type="constant_with_warmup",
         warmup_ratio=0.03,
         bf16=True,
         gradient_checkpointing=True,
