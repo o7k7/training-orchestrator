@@ -1,0 +1,23 @@
+# Plain templates, not Helm hooks - see values.yaml's installQueueResources comment for
+# why (short version: hooks default to delete-then-recreate on every upgrade, which
+# deadlocks against Kueue's finalizer on ResourceFlavor/ClusterQueue).
+{{- if .Values.installQueueResources }}
+# Matches any node - used for CPU/memory-only training jobs.
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: default-flavor
+---
+# Matches GPU nodes only.
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: gpu-flavor
+spec:
+  nodeLabels:
+    {{ .Values.gpuNodeLabel.key }}: {{ .Values.gpuNodeLabel.value | quote }}
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+{{- end }}

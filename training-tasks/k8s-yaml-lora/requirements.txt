@@ -1,0 +1,10 @@
+torch==2.5.1
+transformers==4.46.3
+peft==0.13.2
+trl==0.12.1
+accelerate==1.1.1
+datasets==3.1.0
+huggingface_hub==0.26.2
+wandb==0.18.7
+boto3==1.35.68
+pyyaml==6.0.2
