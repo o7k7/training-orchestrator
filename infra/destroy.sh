@@ -56,6 +56,7 @@ fi
 # was originally applied with.
 OIDC_PROVIDER_ARN="$(cd "$SCRIPT_DIR/eks-cluster" && terraform output -raw oidc_provider_arn)"
 OIDC_PROVIDER_URL="$(cd "$SCRIPT_DIR/eks-cluster" && terraform output -raw oidc_provider_url)"
+NODE_SECURITY_GROUP_ID="$(cd "$SCRIPT_DIR/eks-cluster" && terraform output -raw node_security_group_id)"
 
 echo
 echo "--- [1/3] infra/irsa-training-job-s3 ---"
@@ -75,7 +76,8 @@ echo "--- [2/3] infra/gpu-node-group ---"
 cd "$SCRIPT_DIR/gpu-node-group"
 terraform destroy -auto-approve \
   -var "cluster_name=$CLUSTER_NAME" \
-  -var "subnet_ids=$SUBNET_IDS_JSON"
+  -var "subnet_ids=$SUBNET_IDS_JSON" \
+  -var "node_security_group_id=$NODE_SECURITY_GROUP_ID"
 
 echo
 echo "--- [3/3] infra/eks-cluster ---"

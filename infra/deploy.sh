@@ -63,6 +63,7 @@ CLUSTER_NAME="$(terraform output -raw cluster_name)"
 SUBNET_IDS_JSON="$(terraform output -json private_subnet_ids)"
 OIDC_PROVIDER_ARN="$(terraform output -raw oidc_provider_arn)"
 OIDC_PROVIDER_URL="$(terraform output -raw oidc_provider_url)"
+NODE_SECURITY_GROUP_ID="$(terraform output -raw node_security_group_id)"
 
 echo
 echo "--- [2/3] infra/gpu-node-group ---"
@@ -70,7 +71,8 @@ cd "$SCRIPT_DIR/gpu-node-group"
 terraform init
 terraform apply -auto-approve \
   -var "cluster_name=$CLUSTER_NAME" \
-  -var "subnet_ids=$SUBNET_IDS_JSON"
+  -var "subnet_ids=$SUBNET_IDS_JSON" \
+  -var "node_security_group_id=$NODE_SECURITY_GROUP_ID"
 
 echo
 echo "--- [3/3] infra/irsa-training-job-s3 ---"
