@@ -1,6 +1,11 @@
 # Training Orchestrator: K8s-Native ML Compute Platform
 This project automates the transition from Model Code to Cloud Compute.
 
+The platform's job is to schedule the training container and inject credentials/config
+into it - it does not itself call the MLflow or W&B SDKs. The training script (in the
+researcher's own repo/image) is responsible for `mlflow.log_*`/`wandb.init()`/`wandb.log()`
+calls; MLflow and W&B are additive to each other, not a either/or choice.
+
 ```mermaid
 graph TD
     %% Global Styling
@@ -27,12 +32,14 @@ graph TD
 
     subgraph Infrastructure_Layer [External Platform Services]
         MLflow[MLflow Server]
-        S3[(SeaweedFS/MinIO)]
+        WandB[Weights & Biases]
+        S3[(SeaweedFS/MinIO/S3)]
     end
 
     %% Execution Flows
     K8sAPI ==>|3. Schedule Job| Training_Pod
     Main -->|4. Stream Metrics| MLflow
+    Main -->|4. Stream Metrics| WandB
     Main -->|5. Upload Artifacts| S3
     MLflow -->|6. Metadata Reference| S3
     
@@ -42,6 +49,6 @@ graph TD
     %% Assign Classes
     class API,JobID,K8sAPI control;
     class Main,Init compute;
-    class MLflow,S3,Shared storage;
+    class MLflow,WandB,S3,Shared storage;
     class User user;
 ```

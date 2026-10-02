@@ -1,0 +1,5 @@
+nvidia-device-plugin:
+  affinity: null
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  # nvidia.com/gpu toleration is already a chart default; nothing else to add.

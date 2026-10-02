@@ -1,0 +1,20 @@
+dcgm-exporter:
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations:
+    # Kept from the chart's own default - lets this run on a single-node kind
+    # cluster where the only node is also the control-plane.
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    # Real GPU worker nodes (see infra/gpu-node-group) carry this taint instead.
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  # The chart's own upstream default is true; overridden to false here since this
+  # chart may be installed on clusters without the Prometheus Operator's CRDs
+  serviceMonitor:
+    enabled: false
+
+grafanaDashboard:
+  enabled: false

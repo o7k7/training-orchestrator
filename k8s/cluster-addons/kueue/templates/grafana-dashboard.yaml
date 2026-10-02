@@ -1,0 +1,13 @@
+# Hand-built, not an imported community dashboard - Kueue doesn't have one well-established
+# on grafana.com the way DCGM does.
+{{- if .Values.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-dashboard
+  labels:
+    grafana_dashboard: "1"
+data:
+  kueue.json: |
+{{ .Files.Get "dashboards/kueue.json" | indent 4 }}
+{{- end }}

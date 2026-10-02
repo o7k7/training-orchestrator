@@ -1,0 +1,11 @@
+apiVersion: v2
+name: nvidia-device-plugin-stack
+description: NVIDIA device plugin - makes nvidia.com/gpu an allocatable K8s resource
+type: application
+version: 0.1.0
+appVersion: "0.19.3"
+
+dependencies:
+  - name: nvidia-device-plugin
+    version: 0.19.3
+    repository: https://nvidia.github.io/k8s-device-plugin

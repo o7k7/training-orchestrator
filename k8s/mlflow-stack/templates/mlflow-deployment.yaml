@@ -12,6 +12,7 @@ spec:
       labels:
         app: mlflow
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       initContainers:
         - name: wait-for-db
           image: busybox
@@ -33,7 +34,8 @@ spec:
                   name: {{ .Release.Name }}-unified-secrets
                   key: postgres-password
 
-            # --- S3 Credentials ---
+            {{- if .Values.seaweedfs.enabled }}
+            # --- S3 Credentials (self-hosted SeaweedFS only; real S3 on EKS uses IRSA instead) ---
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -44,6 +46,9 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-unified-secrets
                   key: s3-secret-key
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: "http://{{ .Release.Name }}-seaweedfs-s3:{{ .Values.seaweedfs.s3.port }}"
+            {{- end }}
 
           command: [ "/bin/bash", "-c" ]
           args:

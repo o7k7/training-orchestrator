@@ -10,3 +10,14 @@ wheels/
 .venv
 .env
 
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Helm - fetched chart dependencies (run `helm dependency update` to repopulate)
+**/charts/*.tgz
+Chart.lock
+

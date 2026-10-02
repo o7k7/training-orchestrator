@@ -3,12 +3,24 @@ name = "training-orchestrator"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.128.0",
     "fastapi-limiter>=0.1.6",
+    "httpx>=0.28.1",
     "kubernetes>=34.1.0",
+    "prometheus-fastapi-instrumentator>=7.1.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
+    "typer>=0.27.0",
     "uvicorn>=0.40.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

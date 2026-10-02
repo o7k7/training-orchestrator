@@ -1,0 +1,32 @@
+# Override for a real (but single-day/one-shot) EKS deployment - not a durable
+# multi-user production config. Usage:
+#   ./infra/k8s-deploy.sh   (fills in image/IRSA/API key for you), or manually:
+#   helm install training-orchestrator k8s/orchestrator -f values.yaml -f values-aws.yaml \
+#     --set image.repository=<ecr-repo-uri> --set image.tag=<tag> \
+#     --set serviceAccount.trainingJob.irsaRoleArn=<role-arn> \
+#     --set secrets.apiKey=<a-real-api-key>
+image:
+  repository: "CHANGEME-set-via---set-image.repository"
+  tag: "CHANGEME-set-via---set-image.tag"
+
+# Bundled dev-mode Redis (no persistence, no auth hardening beyond the password below),
+# not a managed service like ElastiCache. Reasonable for a single-day/single-user
+# experiment - revisit if this becomes a durable multi-user service.
+redis:
+  enabled: true
+
+env:
+  # NOT "local" - this runs as an in-cluster pod, needs config.load_incluster_config().
+  environment: "prod"
+  # Placeholder - k8s/mlflow-stack isn't deployed for this run; only needed if the
+  # job's own training script actually calls the MLflow SDK. Real tracking is W&B.
+  mlflowUri: "http://mlflow-not-deployed:5000"
+  # Left unset deliberately - real S3 access comes through the training-job
+  # ServiceAccount's IRSA role (serviceAccount.trainingJob.irsaRoleArn), not a
+  # SeaweedFS-style endpoint.
+
+secrets:
+  # Internal password for the bundled dev Redis above - not user-facing, doesn't need
+  # to be memorable, just needs to exist.
+  redisPassword: "qxsBjWMVvfxK6g3ZGw9vLzcOzFW6tGd"
+  apiKey: "CHANGEME-set-via---set-secrets.apiKey"

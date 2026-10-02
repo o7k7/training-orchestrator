@@ -1,0 +1,88 @@
+{
+  "id": null,
+  "uid": "kueue-training-platform",
+  "title": "Kueue - Training Platform",
+  "tags": ["kueue", "training-orchestrator"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Pending workloads (by ClusterQueue)",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "kueue_pending_workloads",
+          "legendFormat": "{{cluster_queue}} ({{status}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Admitted active workloads (by ClusterQueue)",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "kueue_admitted_active_workloads",
+          "legendFormat": "{{cluster_queue}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Admission wait time, p50/p95 (seconds)",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(kueue_admission_wait_time_seconds_bucket[5m])) by (le, cluster_queue))",
+          "legendFormat": "p50 {{cluster_queue}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(kueue_admission_wait_time_seconds_bucket[5m])) by (le, cluster_queue))",
+          "legendFormat": "p95 {{cluster_queue}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Reserved quota by resource/flavor",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "kueue_local_queue_resource_reservation",
+          "legendFormat": "{{name}} {{resource}} ({{flavor}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Admission attempts rate, by result",
+      "datasource": null,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(kueue_admission_attempts_total[5m])) by (result)",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

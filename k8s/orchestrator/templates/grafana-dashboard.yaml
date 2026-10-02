@@ -1,0 +1,13 @@
+# Hand-built dashboard - every query in dashboards/orchestrator.json was checked against
+# a live Prometheus scraping this same orchestrator release before being committed.
+{{- if .Values.metrics.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-dashboard
+  labels:
+    grafana_dashboard: "1"
+data:
+  orchestrator.json: |
+{{ .Files.Get "dashboards/orchestrator.json" | indent 4 }}
+{{- end }}

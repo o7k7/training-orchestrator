@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi_limiter import FastAPILimiter
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.k8s_job.job_router import job_router
 from app.redis.redis_client import init_redis, get_redis, dispose_redis
@@ -17,6 +18,8 @@ async def lifespan(_: FastAPI):
     await dispose_redis()
 
 app = FastAPI(title="Training Orchestrator", lifespan=lifespan)
+
+Instrumentator().instrument(app).expose(app)
 
 app.include_router(job_router, prefix="/api/v1")
 

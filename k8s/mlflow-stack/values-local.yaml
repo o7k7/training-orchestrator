@@ -1,0 +1,8 @@
+# Override for local/dev deployments without real AWS S3 access.
+# Usage: helm install ... -f values.yaml -f values-local.yaml
+seaweedfs:
+  enabled: true
+
+secrets:
+  s3AccessKey: "admin"
+  s3SecretKey: "somepassword"

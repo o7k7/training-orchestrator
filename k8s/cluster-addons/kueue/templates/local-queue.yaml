@@ -1,0 +1,9 @@
+{{- if .Values.installQueueResources }}
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: training-local-queue
+  namespace: {{ .Values.queue.namespace }}
+spec:
+  clusterQueue: training-cluster-queue
+{{- end }}
